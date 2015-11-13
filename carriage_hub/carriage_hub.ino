@@ -30,32 +30,31 @@ const char api_key[] = "8zA4N3vDrhgEFQugX4ThtO1Ch";
 
 
 /**
+ * Configure upload interval TEMP
+ */
+unsigned long lastConnectionTime = 0;             // last time you connected to the server, in milliseconds
+const unsigned long postingInterval = 100L * 1000L; // delay between updates, in milliseconds
+
+
+/**
  * Setup the application
  */
 void setup() {
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
-
+  
+  // Encrypt password
+  //aes256_enc_single(key, password);
+  //aes256_dec_single(key, password);
+  
   // Start the Ethernet connection:
   if (Ethernet.begin(mac) == 0) {
     Serial.println("Failed to configure Ethernet using DHCP tring static IP instead.");
     // Try to congifure using IP address instead of DHCP:
     Ethernet.begin(mac, ip);
   }
-  
-   // if you get a connection, report back via serial:
-  if (client.connect(server, 80)) {
-    Serial.println("connected");
-    // Make a HTTP request:
-    client.println("GET / HTTP/1.1");
-    client.println("Host: 192.168.33.17");
-    client.println("Connection: close");
-    client.println();
-  }
-  else {
-    // kf you didn't get a connection to the server:
-    Serial.println("connection failed");
-  }
+ 
+  httpRequest();
 }
 
 
@@ -63,26 +62,34 @@ void setup() {
  * Main program loop
  */
 void loop() {
-  // put your main code here, to run repeatedly:
-  aes256_enc_single(key, password);
-  aes256_dec_single(key, password);
+   if (client.available()) {
+      char c = client.read();
+      Serial.print(c);
+   }
+    
+   if (millis() - lastConnectionTime > postingInterval) {
+     httpRequest();
+   }
+}
 
-  
-  
-  // if there are incoming bytes available
-  // from the server, read them and print them:
-  if (client.available()) {
-    char c = client.read();
-    Serial.print(c);
-  }
 
-  // if the server's disconnected, stop the client:
+void httpRequest(){
+ 
   if (!client.connected()) {
-    Serial.println();
-    Serial.println("disconnecting.");
     client.stop();
-
-    // do nothing forevermore:
-    while (true);
   }
+ 
+ if (client.connect(server, 80)) {
+    Serial.println("connected");
+    // Make a HTTP request:
+    client.println("GET / HTTP/1.1");
+    client.println("Host: 192.168.33.17");
+    client.println("Connection: close");
+    client.println();
+    
+    lastConnectionTime = millis();
+  }else{
+    Serial.println("connetion error");
+  }
+  
 }

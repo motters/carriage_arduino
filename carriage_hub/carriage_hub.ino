@@ -34,8 +34,9 @@ const char api_key[] = "8zA4N3vDrhgEFQugX4ThtO1Ch";
  * Configure upload interval TEMP
  */
 unsigned long lastConnectionTime = 0;             // last time you connected to the server, in milliseconds
-const unsigned long postingInterval = 100L * 1000L; // delay between updates, in milliseconds
+const unsigned long postingInterval = 100L * 200L; // delay between updates, in milliseconds
 boolean connected_to = false;
+String data = "";
 
 
 /**
@@ -56,7 +57,7 @@ void setup() {
     Ethernet.begin(mac, ip);
   }
  
-  httpRequest();
+  httpRequestConfig();
 }
 
 
@@ -67,42 +68,48 @@ void loop() {
     
    if (client.available()) {
       char c = client.read();
-      connected_to = true;
-      Serial.print(c);
-   }else{
-      connected_to = false;
+      Serial.print(1);
+      if (c == '\n') { data += " "; } else { data += c; }
    }
    
-   if(connected_to == false){
-     if (millis() - lastConnectionTime > postingInterval) {
-       httpRequest();
+   if (!client.connected() && data != "") {
+     Serial.println(data);
+     data = "";
+   }
+   
+   if (millis() - lastConnectionTime > postingInterval) {
+     lastConnectionTime = millis();
+     if (!client.connected()) {
+       //Serial.println(data);
+       //data = "";
+       httpRequestConfig();
      }
    }
+   
 }
 
 
-void httpRequest(){
+void httpRequestConfig(){
  
-  if (!client.connected()) {
+ if (!client.connected()) {
     client.stop();
-  }
+ }
  
  if (client.connect(server, 80)) {
     Serial.println("connected");
     // Make a HTTP request:
-    client.println("GET /api/v1/config/"+String(api_key)+" HTTP/1.1");
-    client.println("Host: 192.168.33.17");
-    client.println("Content-Type: application/x-www-form-urlencoded");
-    client.println("api: "+String(api_key));
-    client.println("enc: "+String(enc_key));
-    client.println("username: "+String(username));
-    client.println("Password: "+String(password));
-    client.println("Connection: close");
+    //client.println("GET /api/v1/config/"+String(api_key)+" HTTP/1.1");
+    //client.println("Host: 192.168.33.17");
+    //client.println("Content-Type: application/x-www-form-urlencoded");
+    //client.println("api: "+String(api_key));
+    //client.println("enc: "+String(enc_key));
+    //client.println("username: "+String(username));
+    //client.println("password: "+String(password));
+    //client.println("Connection: close");
+    client.println("GET /api/v1/config/"+String(api_key)+" HTTP/1.1\nHost: 192.168.33.17\napi: "+String(api_key)+"\nenc: "+String(enc_key)+"\nusername: "+String(username)+"\npassword: "+String(password)+"\nConnection: close");
     client.println();
     
-    lastConnectionTime = millis();
-  }else{
-    Serial.println("connetion error");
+    //lastConnectionTime = millis();
   }
   
 }

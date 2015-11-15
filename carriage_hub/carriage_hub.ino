@@ -9,6 +9,8 @@
 
 /**
  * Setup ethernet connection
+ *
+ * @author Sam Mottley
  */
 // Set mac address
 byte mac[] = { 0x90, 0xA2, 0xDA, 0x0F, 0x19, 0x28 };
@@ -22,6 +24,8 @@ EthernetClient client;
 
 /**
  * Hub unique information
+ *
+ * @author Sam Mottley
  */
 //const uint8_t key[] = {'t','z','G','N','3','n','t','q','y','W','S','I','Z','M','L','6','n','Y','Y','H','e','B','2','E','p','D','k','2','I','H','9','2'};
 const char username[] = "hub_225468";
@@ -32,6 +36,8 @@ const char api_key[] = "8zA4N3vDrhgEFQugX4ThtO1Ch";
 
 /**
  * Configure upload interval TEMP
+ *
+ * @author Sam Mottley
  */
 unsigned long lastConnectionTime = 0;             // last time you connected to the server, in milliseconds
 const unsigned long postingInterval = 100L * 200L; // delay between updates, in milliseconds
@@ -41,12 +47,15 @@ String data = "";
 
 /**
  * Setup the application
+ *
+ * @author Sam Mottley
  */
-void setup() {
+void setup() 
+{
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
   
-  // Encrypt password
+  // Encrypt
   //aes256_enc_single(key, password);
   //aes256_dec_single(key, password);
   
@@ -57,31 +66,22 @@ void setup() {
     Ethernet.begin(mac, ip);
   }
  
+  // Get the hubs and associated sub hubs configuration
   httpRequestConfig();
 }
 
 
 /**
  * Main program loop
+ *
+ * @author Sam Mottley
  */
-void loop() {
-    
-   if (client.available()) {
-      char c = client.read();
-      Serial.print(1);
-      if (c == '\n') { data += " "; } else { data += c; }
-   }
-   
-   if (!client.connected() && data != "") {
-     Serial.println(data);
-     data = "";
-   }
+void loop() 
+{
    
    if (millis() - lastConnectionTime > postingInterval) {
      lastConnectionTime = millis();
      if (!client.connected()) {
-       //Serial.println(data);
-       //data = "";
        httpRequestConfig();
      }
    }
@@ -89,32 +89,47 @@ void loop() {
 }
 
 
-void httpRequestConfig(){
- 
+/**
+ * Retreive the hubs and sub hub configuration from server
+ *
+ * @author Sam Mottley
+ */
+void httpRequestConfig()
+{
+ // Ensure socket is not in use
  if (!client.connected()) {
     client.stop();
  }
  
+ // When socket free open a connection
  if (client.connect(server, 80)) {
-    Serial.println("connected");
-    // Make a HTTP request:
-    //client.println("GET /api/v1/config/"+String(api_key)+" HTTP/1.1");
-    //client.println("Host: 192.168.33.17");
-    //client.println("Content-Type: application/x-www-form-urlencoded");
-    //client.println("api: "+String(api_key));
-    //client.println("enc: "+String(enc_key));
-    //client.println("username: "+String(username));
-    //client.println("password: "+String(password));
-    //client.println("Connection: close");
+    // Make the http request to server
     client.println("GET /api/v1/config/"+String(api_key)+" HTTP/1.1\nHost: 192.168.33.17\napi: "+String(api_key)+"\nenc: "+String(enc_key)+"\nusername: "+String(username)+"\npassword: "+String(password)+"\nConnection: close");
     client.println();
-    
-    //lastConnectionTime = millis();
-  }
+ }
+ 
+ // Wait for server to recieve request 
+ while(client.connected() && !client.available()) delay(1);
   
+ // Retrieve data from server and store in buffer
+ while (client.connected() || client.available()) {
+      char c = client.read();
+      if (c == '\n') { data += " "; } else { data += c; }
+ }
+ 
+ // Close the connection / socket 
+ client.stop();
+  
+ // Print the buffered data
+ Serial.println(data);
 }
 
 
+/**
+ * Encode data being sent over http connection
+ *
+ * @author Sam Mottley
+ */
 String URLEncode(const char* msg)
 {
     const char *hex = "0123456789abcdef";

@@ -6,7 +6,19 @@
 #include <Ethernet.h>
 #include <ArduinoJson.h>
 #include <AESLib.h>
+//#include <ESP8266_TCP.h>
+//#include <SoftwareSerial.h>
+//SoftwareSerial wirless(1, 0);
 
+// ESP8266 Class
+//ESP8266_TCP wifi;
+
+// Target Access Point
+#define ssid         "ESP_AP"
+#define pass         "123456789"
+
+// Connect this pin to CH_PD pin on ESP8266
+#define PIN_RESET    6
 
 /**
  * Setup ethernet connection
@@ -45,7 +57,7 @@ String serial_config = "";
 unsigned long lastConnectionTime = 0;             // last time you connected to the server, in milliseconds
 const unsigned long postingInterval = 100L * 500L; // delay between updates, in milliseconds
 boolean connected_to = false;
-String data = "";
+//String data = "";
 char *cstr;
 constexpr const int* addr(const int& ir) {
   return &ir;
@@ -61,6 +73,7 @@ void setup()
 {
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
+  //wirless.begin(115200);
 
   // Start the Ethernet connection:
   if (Ethernet.begin(mac) == 0) {
@@ -73,6 +86,20 @@ void setup()
   serial_config = httpRequestConfig();
   cstr = new char[serial_config.length() + 1];
   strcpy(cstr, serial_config.c_str());
+
+  /*wifi.begin(&wirless, &Serial, PIN_RESET);
+
+  // Check that ESP8266 is available
+  if (wifi.test())
+  {
+    // Connect to target Access Point
+    String ip = connectAP();
+    Serial.print(ip);
+    // Open TCP Server on port 2000 and 30 seconds for connection timeout (Max 2880)
+    wifi.openTCPServer(2000, 30);
+  } else {
+    Serial.print("nope");
+  }*/
 }
 
 
@@ -92,16 +119,37 @@ void loop()
   // Loop forever now config settings are loaded
   while (true)
   {
-    // temp 
+    // temp
     Serial.println(sub_hub_demo_api); delay(5000);
-    
+
+    /*
+    int dataState = wifi.isNewDataComing(WIFI_SERVER);
+    if (dataState != WIFI_NEW_NONE) {
+      if (dataState == WIFI_NEW_CONNECTED) {
+        // Connected with TCP Client Side
+        Serial.println("Status : Connected");
+      } else if (dataState == WIFI_NEW_DISCONNECTED) {
+        // Disconnected from TCP Client Side
+        Serial.println("Status : Disconnected");
+      } else if (dataState == WIFI_NEW_MESSAGE) {
+        // Got a message from TCP Client Side
+        Serial.println("ID : " + String(wifi.getId()));
+        Serial.println("Message : " + wifi.getMessage());
+        wifi.closeTCPConnection(0);
+      } else if (dataState == WIFI_NEW_SEND_OK) {
+        // Message transfer has successful
+        Serial.println("SENT!!!!");
+      }
+    }*/
+
+
     // Check for incomming requests
-      // Check sub hub is in the config array
-        // proive the sub hubs configuration OR save the module data from sub hub to buffer
-    
+    // Check sub hub is in the config array
+    // proive the sub hubs configuration OR save the module data from sub hub to buffer
+
     // Check the size of the module data buffer
-      // if greated than x then upload the buffered module data to the web server
-    
+    // if greated than x then upload the buffered module data to the web server
+
   }
 
 }
@@ -112,7 +160,7 @@ void loop()
  */
 boolean httpRequestUpload()
 {
-  
+
 }
 
 
@@ -123,6 +171,7 @@ boolean httpRequestUpload()
  */
 String httpRequestConfig()
 {
+  String data = "";
   // Ensure socket is not in use
   if (!client.connected()) {
     client.stop();
@@ -152,7 +201,7 @@ String httpRequestConfig()
 
   // Close the connection / socket
   client.stop();
-
+  Serial.println(data);
   // Take only the content not the headers
   const char *PATTERN1 = "sub_hubs";
   const char *PATTERN2 = " 0";
@@ -172,11 +221,26 @@ String httpRequestConfig()
   }
 
   // Format the data and ensure valid json
-  String more = String(target);
-  data = "{\"sub_hubs" + more;
+  data = String(target);
+  Serial.println(String(target));
   free( target );
-  String chache = data; data = "";
-  return chache;
+  return data;
+}
+
+
+// Access Point Connection Function that you can loop connect to Access Point until successful
+String connectAP()
+{
+  /*String ip = "0.0.0.0";
+  while (ip.equals("0.0.0.0"))
+  {
+    ip = wifi.connectAccessPoint(ssid, pass);
+    if (!ip.equals("0.0.0.0"))
+    {
+      break;
+    }
+  }
+  return ip;*/
 }
 
 

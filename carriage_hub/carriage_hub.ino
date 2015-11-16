@@ -1,3 +1,4 @@
+
 /**
  * Include libs
  */
@@ -32,6 +33,8 @@ const char username[] = "hub_225468";
 const char enc_key[] = "tzGN3ntqyWSIZML6nYYHeB2EpDk2IH92";
 char password[] = "password";
 const char api_key[] = "8zA4N3vDrhgEFQugX4ThtO1Ch";
+String serial_config = "";
+
 
 
 /**
@@ -40,11 +43,11 @@ const char api_key[] = "8zA4N3vDrhgEFQugX4ThtO1Ch";
  * @author Sam Mottley
  */
 unsigned long lastConnectionTime = 0;             // last time you connected to the server, in milliseconds
-const unsigned long postingInterval = 100L * 200L; // delay between updates, in milliseconds
+const unsigned long postingInterval = 100L * 500L; // delay between updates, in milliseconds
 boolean connected_to = false;
 String data = "";
 
-
+constexpr const int* addr(const int& ir) { return &ir; }
 /**
  * Setup the application
  *
@@ -67,7 +70,16 @@ void setup()
   }
  
   // Get the hubs and associated sub hubs configuration
-  httpRequestConfig();
+  serial_config = httpRequestConfig();
+  //const char * my_str = serial_config.c_str();
+  //char * my_copy;
+  //my_copy = (char *)malloc(sizeof(char) * strlen(my_str));
+  //strcpy(my_copy,my_str);
+  //constexpr
+   //static const int lengthC = strlen(serial_config.c_str()+'\0');
+   //constexpr const int* x = addr(lengthC);
+
+   
 }
 
 
@@ -78,13 +90,41 @@ void setup()
  */
 void loop() 
 {
+   Serial.println(serial_config);
+
+  StaticJsonBuffer<200> jsonBuffer;
+  char *cstr = new char[serial_config.length() + 1];
+  strcpy(cstr, serial_config.c_str());
+  JsonObject& root = jsonBuffer.parseObject(cstr);
+  if (!root.success()) {
+    Serial.println("parseObject() failed");
+    return;
+  }
+  
+  
+  const char* sensor = root["sub_hubs"][0]["api_key"];
    
-   if (millis() - lastConnectionTime > postingInterval) {
+   
+   Serial.print(sensor);
+   
+   /*
+   if (root != NULL) {
+        aJsonObject* sub_hubs = aJson.getObjectItem(root, "sub_hubs"); 
+        Serial.println( sub_hubs->valuestring);
+   }else{
+    Serial.println("error");
+   }*/
+   
+   delay(5000);
+   
+   
+   /*if (millis() - lastConnectionTime > postingInterval) {
      lastConnectionTime = millis();
      if (!client.connected()) {
-       httpRequestConfig();
+       serial_config = httpRequestConfig();
+       Serial.println(configs);
      }
-   }
+   }*/
    
 }
 
@@ -94,7 +134,7 @@ void loop()
  *
  * @author Sam Mottley
  */
-void httpRequestConfig()
+String httpRequestConfig()
 {
  // Ensure socket is not in use
  if (!client.connected()) {
@@ -105,6 +145,7 @@ void httpRequestConfig()
  if (client.connect(server, 80)) {
     // Make the http request to server
     client.println("GET /api/v1/config/"+String(api_key)+" HTTP/1.1\nHost: 192.168.33.17\napi: "+String(api_key)+"\nenc: "+String(enc_key)+"\nusername: "+String(username)+"\npassword: "+String(password)+"\nConnection: close");
+    //client.println("GET /test HTTP/1.1\nHost: 192.168.33.17\napi: "+String(api_key)+"\nenc: "+String(enc_key)+"\nusername: "+String(username)+"\npassword: "+String(password)+"\nConnection: close");
     client.println();
  }
  
@@ -114,14 +155,40 @@ void httpRequestConfig()
  // Retrieve data from server and store in buffer
  while (client.connected() || client.available()) {
       char c = client.read();
-      if (c == '\n') { data += " "; } else { data += c; }
+      //Serial.print(c);
+      if (c == '\n') { data += ' '; } else { data += c; }
  }
  
  // Close the connection / socket 
  client.stop();
   
  // Print the buffered data
- Serial.println(data);
+ //Serial.println(data);
+ 
+ 
+  const char *PATTERN1 = "sub_hubs";
+  const char *PATTERN2 = " 0";
+
+  char *target = NULL;
+  char *start, *end;
+  const char * s = data.c_str();
+  if ( start = strstr( s, PATTERN1 ) )
+  {
+      start += strlen( PATTERN1 );
+      if ( end = strstr( start, PATTERN2 ) )
+      {
+          target = ( char * )malloc( end - start + 1 );
+          memcpy( target, start, end - start );
+          target[end - start] = '\0';
+      }
+  }
+  
+  //Serial.println(target);
+  String more = String(target);
+  data = "{\"sub_hubs"+more;
+  free( target );
+  String chache = data; data = "";
+  return chache;
 }
 
 

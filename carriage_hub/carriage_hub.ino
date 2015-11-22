@@ -5,20 +5,9 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <ArduinoJson.h>
-#include <AESLib.h>
-//#include <ESP8266_TCP.h>
-//#include <SoftwareSerial.h>
-//SoftwareSerial wirless(1, 0);
 
-// ESP8266 Class
-//ESP8266_TCP wifi;
 
-// Target Access Point
-#define ssid         "ESP_AP"
-#define pass         "123456789"
 
-// Connect this pin to CH_PD pin on ESP8266
-#define PIN_RESET    6
 
 /**
  * Setup ethernet connection
@@ -40,7 +29,6 @@ EthernetClient client;
  *
  * @author Sam Mottley
  */
-//const uint8_t key[] = {'t','z','G','N','3','n','t','q','y','W','S','I','Z','M','L','6','n','Y','Y','H','e','B','2','E','p','D','k','2','I','H','9','2'};
 const char username[] = "hub_225468";
 const char enc_key[] = "tzGN3ntqyWSIZML6nYYHeB2EpDk2IH92";
 char password[] = "password";
@@ -73,7 +61,6 @@ void setup()
 {
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
-  //wirless.begin(115200);
 
   // Start the Ethernet connection:
   if (Ethernet.begin(mac) == 0) {
@@ -87,19 +74,6 @@ void setup()
   cstr = new char[serial_config.length() + 1];
   strcpy(cstr, serial_config.c_str());
 
-  /*wifi.begin(&wirless, &Serial, PIN_RESET);
-
-  // Check that ESP8266 is available
-  if (wifi.test())
-  {
-    // Connect to target Access Point
-    String ip = connectAP();
-    Serial.print(ip);
-    // Open TCP Server on port 2000 and 30 seconds for connection timeout (Max 2880)
-    wifi.openTCPServer(2000, 30);
-  } else {
-    Serial.print("nope");
-  }*/
 }
 
 
@@ -112,37 +86,23 @@ void loop()
 {
   // De code system settings (dynamic buffer size still needs to be sorted)
   Serial.println(serial_config);
-  StaticJsonBuffer<200> jsonBuffer;
+  DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.parseObject(cstr);
-  const char* sub_hub_demo_api = root["sub_hubs"][0]["api_key"];
+  char module = 0 ;
+  JsonArray& modules = root["sub_hubs"]["okpo"]["modules"];
+  
+  const char* sub_hub_demo_api = root["sub_hubs"]["okpo"]["api_key"];
 
   // Loop forever now config settings are loaded
   while (true)
   {
     // temp
-    Serial.println(sub_hub_demo_api); delay(5000);
-
-    /*
-    int dataState = wifi.isNewDataComing(WIFI_SERVER);
-    if (dataState != WIFI_NEW_NONE) {
-      if (dataState == WIFI_NEW_CONNECTED) {
-        // Connected with TCP Client Side
-        Serial.println("Status : Connected");
-      } else if (dataState == WIFI_NEW_DISCONNECTED) {
-        // Disconnected from TCP Client Side
-        Serial.println("Status : Disconnected");
-      } else if (dataState == WIFI_NEW_MESSAGE) {
-        // Got a message from TCP Client Side
-        Serial.println("ID : " + String(wifi.getId()));
-        Serial.println("Message : " + wifi.getMessage());
-        wifi.closeTCPConnection(0);
-      } else if (dataState == WIFI_NEW_SEND_OK) {
-        // Message transfer has successful
-        Serial.println("SENT!!!!");
-      }
-    }*/
-
-
+    //Serial.println(sub_hub_demo_api);
+    
+    modules.printTo(Serial); 
+    Serial.println("");
+    root.printTo(Serial);    
+    delay(5000);
     // Check for incomming requests
     // Check sub hub is in the config array
     // proive the sub hubs configuration OR save the module data from sub hub to buffer
@@ -153,6 +113,7 @@ void loop()
   }
 
 }
+
 
 
 /**
@@ -201,7 +162,7 @@ String httpRequestConfig()
 
   // Close the connection / socket
   client.stop();
-  Serial.println(data);
+
   // Take only the content not the headers
   const char *PATTERN1 = "sub_hubs";
   const char *PATTERN2 = " 0";
@@ -221,26 +182,10 @@ String httpRequestConfig()
   }
 
   // Format the data and ensure valid json
-  data = String(target);
-  Serial.println(String(target));
+  data = "{\"sub_hubs" + String(target);
+  Serial.println(data);
   free( target );
   return data;
-}
-
-
-// Access Point Connection Function that you can loop connect to Access Point until successful
-String connectAP()
-{
-  /*String ip = "0.0.0.0";
-  while (ip.equals("0.0.0.0"))
-  {
-    ip = wifi.connectAccessPoint(ssid, pass);
-    if (!ip.equals("0.0.0.0"))
-    {
-      break;
-    }
-  }
-  return ip;*/
 }
 
 

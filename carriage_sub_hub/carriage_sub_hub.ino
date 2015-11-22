@@ -2,6 +2,8 @@
  * Include libs
  */
 #include <ArduinoJson.h>
+#include <StandardCplusplus.h>
+#include <map>
 
 
 /**
@@ -9,7 +11,7 @@
  *
  *  @author Sam Mottley
  */
-String modules_config = "[{\"module_connections\":\"SHA-A3\",\"module\":\"2\",\"interval\":\"5000\"}, {\"module_connections\":\"SHA-A4\",\"module\":\"3\",\"interval\":\"1000\"}]";
+String modules_config = "[{\"module_connections\":\"SHA-A3\",\"module\":\"2\",\"interval\":\"1000\"}, {\"module_connections\":\"SHA-A4\",\"module\":\"3\",\"interval\":\"5000\"}]";
 
 
 /**
@@ -17,15 +19,19 @@ String modules_config = "[{\"module_connections\":\"SHA-A3\",\"module\":\"2\",\"
  *
  *  @author Sam Mottley
  */
-unsigned long module_times[255]; // This is to be changed for C++ map function or vector to enable auto sizing 
-//String module_buffer[10][50]; // Thus is to be changed for C++ map fucntion or vector to enable auto sizing 
+int maxNumberValues = 20;
+//unsigned long module_times[20]; // This is to be changed for C++ map function or vector to enable auto sizing 
+std::map< int, unsigned long > module_times; 
+std::map< String, String > buffer_container; 
+
 
 /**
  * Setup the application
  *
  *  @author Sam Mottley
  */
-void setup() {
+void setup() 
+{
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
 }
@@ -36,8 +42,8 @@ void setup() {
  *
  * @author Sam Mottley
  */
-void loop() {
-  
+void loop() 
+{ 
   // De code system settings (dynamic buffer size still needs to be sorted)
   DynamicJsonBuffer jsonBuffer; // Use this for now but should be static to use less memory
   JsonArray& modules_object = jsonBuffer.parseArray(modules_config);
@@ -86,14 +92,50 @@ void loop() {
                 break;
             }
         }
-     }
-     
-     
-     // Check buffer size
-       // Larger than X
+        
+        
+       // Check size of buffer
+       String connection_buf = modules_object[i]["module_connections"];        
+       if(count_commas(buffer_container[connection_buf]) >= maxNumberValues){
           // Send buffer via wireless link to sub hub 
-          // Clear buffer
+          sendBuffer(connection_buf);
+       }  
+    }
   }
+}
+
+
+/**
+ * Count the number of commas in a string
+ */
+int count_commas(String s) {
+  int count = 0;
+
+  for (int i = 0; i < s.length(); i++)
+    if (s[i] == ',') count++;
+
+  return count;
+}
+
+
+/** 
+ * Send data via the wireless link and clear the data buffer
+ */
+boolean sendBuffer(String connection)
+{
+  // Connect to main carriage hub via wireless
+  
+  
+  // Send the current buffer
+  //Serial.print(buffer_container[connection]);
+  
+  // Check the responce for a ok
+  
+  // Clear the current buffer
+  buffer_container[connection] = "";
+  
+  // Return true or false depending up on the responce
+  return true;
 }
 
 
@@ -102,10 +144,16 @@ void loop() {
  */
 void readTemperture(String connection)
 {
+  // Get temperture (random number for now)
+  int randNumber = random(18, 35);
+  
+  // Add recorded value to buffer
+  buffer_container[connection] += "," + String(randNumber);
+  
+  // Debug message temp
   Serial.print("Read Temperture Value: ");
-  Serial.println(connection);
+  Serial.println(buffer_container[connection]);
 }
-
 
 
 /**
@@ -118,7 +166,6 @@ void readVibration(String connection)
 }
 
 
-
 /**
  * This function reads the sound levels relative to the connections
  */
@@ -129,7 +176,6 @@ void readSoundLevel(String connection)
 }
 
 
-
 /**
  * This function reads voltages relative to the connections
  */
@@ -138,6 +184,5 @@ void readVoltages(String connection)
   Serial.print("Read Voltage Value: "); 
   Serial.println(connection);
 }
-
 
 

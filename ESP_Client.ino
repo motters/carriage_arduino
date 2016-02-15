@@ -49,7 +49,7 @@ void loop()
     server.handleClient();
   }else if(isClosed == false){
     //If connection details are collected we'll shut down the wireless access point
-    WiFi.mode(WIFI_STA);
+    //WiFi.mode(WIFI_STA);
     WiFi.disconnect();
     isClosed = true;
   }  
@@ -61,46 +61,68 @@ void loop()
       String data = Serial.readString();
       
       // Connect to the main hub
-      //wifiMulti.addAP(mainhub_ssid.to_cstr, mainhub_password);
       char ssid_char[mainhub_ssid.length()+1]; char pass_char[mainhub_password.length()+1];
       mainhub_ssid.toCharArray(ssid_char, mainhub_ssid.length()+1); mainhub_password.toCharArray(pass_char, mainhub_password.length()+1);
-      WiFi.begin(ssid_char, pass_char);
       
+      // Search for main hub and wait till it appears
+      bool appeard = false;
+      while(appeard == false){
+         int n = WiFi.scanNetworks();
+	 for (int i = 0; i < n; ++i) {
+           String current_ssid = WiFi.SSID(i);
+           Serial.println(current_ssid);
+           if(current_ssid == mainhub_ssid)
+             appeard = true;
+         }
+      }
+      
+      // Delay for a random time to reduce change of more than one sub hub connecting to main hub at same time
+      //delay(random(10000, 990000));
+      
+      // Connect
+      WiFi.begin(ssid_char, pass_char);
+      WiFi.mode(WIFI_STA);
       // Wait for a successfull connection
       while (WiFi.status() != WL_CONNECTED) {
-      //while (wifiMulti.run() != WL_CONNECTED) {
           delay(500);
           Serial.print(".");
       }
-       Serial.println("connected");
+
       // Create client instance
       WiFiClient client;
       
       // Send the data
-      if (!client.connect("google.com", 80)) {
+      bool connectedMst = false;
+      while(!connectedMst){
+        Serial.println("Failed Connecting");
+        if (client.connect("192.168.4.1", 80)) {
+          connectedMst = true;
           //Logging of failed connection here
-          Serial.println("count not connect to dis");
-      }else{
-        Serial.println("building package");
-         // Create the request
-        String url = "/data?data=" + data;
-        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                     "Host: " + "google.com" + "\r\n" + 
-                     "Connection: close\r\n\r\n");
-        
-        // Wait a few 
-        delay(10);
-        
-        // Check responce
-        while(client.available()){
-          String responce = client.readStringUntil('\r');
-          if(responce == 0){
-            // @todo log error
-          }
-          Serial.println(responce);
-          Serial.println("woop");
+          Serial.println("Connected");
         }
-      }    
+      }
+      
+       // Create the request
+      String url = "/data?data=" + data;
+      Serial.println(data);
+      client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                   "Host: " + "192.168.4.1" + "\r\n" + 
+                   "Connection: close\r\n\r\n");
+      
+      // Wait a few 
+      delay(10);
+      
+      // Check responce
+      while(client.available()){
+        String responce = client.readStringUntil('\r');
+        Serial.println(responce);
+        if(responce == 0){
+          // @todo log error
+        }
+      }
+      
+      client.stop();
+          
     }
   }
 }

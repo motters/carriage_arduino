@@ -32,6 +32,7 @@ void setup() {
 	// Setup serial and allow device to settle
 	delay(1000);
 	Serial.begin(115200);
+        Serial.println("Setup loop finished");
 }
 
 
@@ -43,8 +44,10 @@ void loop() {
 	// If the main hub connection details are not collected then handle clients
 	if(!main_hub){
 		// Wait for main hub
-		if(nodeCommunicator->configureSubHub())
-			main_hub = true;
+		if(nodeCommunicator->configureSubHub()){
+			main_hub = true;  
+                        Serial.println("Sub hub configured");
+                }
 	}
 
 	// If main hub has been defined
@@ -53,13 +56,15 @@ void loop() {
 		if(Serial.available() > 0){
 			// Read the data ready to be sent to main hub
 			String data = Serial.readString();
+                        Serial.print("Data to send: ");
+                        Serial.println(data);
 			// Send the data
-			if(!nodeCommunicator->toHub(data)){
-				// There was an error do something like re-try
-			}else{
-                                Serial.println("sent!");
+                        bool sent = false;
+                        while(!sent){
+                               sent = nodeCommunicator->toHub(data);
+                               delay(1000);
                         }
+                        Serial.println("Data sent successfully");
 		}
 	}
 }
-

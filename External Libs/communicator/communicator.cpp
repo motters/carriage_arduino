@@ -3,7 +3,11 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoJson.h>
-
+#if defined(ARDUINO) && ARDUINO >= 100
+  #include "Arduino.h"
+#else
+  #include "WProgram.h"
+#endif
 
 #define SERVER_IP_ADDR			"192.168.4.1"
 #define SERVER_PORT				4011
@@ -49,12 +53,10 @@ String communicator::split(String in_str, int id) {
 	char *str;
 	int id_c = 0;
 	while ((str = strtok_r(p, ",", &p)) != NULL){
-		if(id_c == 0){
-			id_c++;
-			if(id == 0)
-				return str;
+		if(id_c == id){
+			return String(str);
 		}else{
-			return str;
+			id_c++;
 		}
 	}
 	return "0";
@@ -108,6 +110,7 @@ bool communicator::setNodes(String nodes_string)
 bool communicator::sendSubHubData(void)
 {
 	DynamicJsonBuffer jsonBuffer; // Use this for now but should be static to use less memory
+	//::Serial.println(this->nodes);
 	JsonArray& connection_data = jsonBuffer.parseArray(this->nodes);
 
 	// Send data to sub hubs
@@ -116,31 +119,57 @@ bool communicator::sendSubHubData(void)
 		if (i == 0)
 		  continue;
 
+		//Change mode
+		WiFi.mode(WIFI_STA);
+		delay(200);
+
 		// Connect to client
 		WiFiClient curr_client;
 		WiFi.begin(connection_data[i]["s"], connection_data[i]["p"]);
 
 		// Check status
-		int wait = 3000;
+		int wait = 2500;
 		while((WiFi.status() == WL_DISCONNECTED) && wait--)
 			delay(3);
 
 		// If the connection timed out
-		if (WiFi.status() != 3)
+		if (WiFi.status() != WL_CONNECTED){ //3
+			//::Serial.println("status 3 return false");
+			WiFi.mode(WIFI_AP_STA);
 			continue;
+			//return false;
+		}
 
 		// Connect to the node's server
-		if (!curr_client.connect(SERVER_IP_ADDR, SERVER_PORT)) 
+		if (!curr_client.connect(SERVER_IP_ADDR, SERVER_PORT)) {
+			//::Serial.println("cant connect to node continue");
+			WiFi.mode(WIFI_AP_STA);
 			continue;
+			//return false;
+		}
 
 		// Send main hubs ssid and password
-		if (!this->send(this->ssid+","+this->pass, curr_client))
+		if (!this->send(this->ssid+","+this->pass, curr_client)){
+			WiFi.mode(WIFI_AP_STA);
+			//::Serial.println("cant send data conintue");
 			continue;
+			//return false;
+		}
 
 		// Disconnect from client
 		curr_client.stop();
 		WiFi.disconnect();
+		//::Serial.println("disconnected");
+
+		//Change mode 
+		WiFi.mode(WIFI_AP_STA);
+		delay(200);
 	}
+
+	// Memory leak some where :s
+	delete jsonBuffer; delete connection_data;
+
+	return true;
 }
 
 /**
@@ -152,14 +181,18 @@ bool communicator::send(String message, WiFiClient curr_client)
 {
 	curr_client.println( message.c_str() );
 
-	if (!this->waitForClient(curr_client, 1000))
+	if (!this->waitForClient(curr_client, 1000)){
+		//::Serial.println("cant connect to client returning false");
 		return false;
+	}
 
 	String response = curr_client.readStringUntil('\r');
 	curr_client.readStringUntil('\n');
 
-	if (response.length() <= 2) 
+	/*if (response.length() <= 2){ 
+		::Serial.println("length greating than two returning false");
 		return false;
+	}*/
 
 	this->received = response;
 
@@ -175,16 +208,23 @@ bool communicator::readData()
 {
 	while (true) {
 		this->_client = this->_server.available();
-		if (!this->_client)
-			break;
+		if (!this->_client){
+			//break;
+			//::Serial.println("No client");
+			return false;
+		}
 
 		if (!this->waitForClient(_client, 3000)) {
+			//::Serial.println("Waiting for client");
+			//continue;
 			continue;
 		}
 
 		// Read in request and pass it to the supplied handler
 		this->received = this->_client.readStringUntil('\r');
 		this->_client.readStringUntil('\n');
+
+		//::Serial.println(this->received);
 
 		// Send the response back to the client of success
 		if (this->_client.connected())
@@ -209,8 +249,10 @@ bool communicator::waitForClient(WiFiClient curr_client, int max_wait)
 		delay(3);
 
 	/* Return false if the client isn't ready to communicate */
-	if (WiFi.status() == WL_DISCONNECTED || !curr_client.connected())
+	/*if (WiFi.status() == WL_DISCONNECTED || !curr_client.connected()){
+		::Serial.println("client is not ready to communicate returning false");
 		return false;
+	}*/
 	
 	return true;
 }
@@ -225,13 +267,15 @@ bool communicator::configureSubHub(void)
 {
 	// Wait for main hub to send its conenction details
 	bool mainhub = false;
-	while(mainhub)
+	while(!mainhub)
 	{
 		// Read any data sent
 		if(this->readData()){
 			//set the main hub data
 			this->master_ssid = this->split(this->received, 0);
 			this->master_pass = this->split(this->received, 1);
+			//::Serial.println(master_ssid);
+			//::Serial.println(master_pass);
 			
 			// Exit the while loop
 			mainhub = true;
@@ -253,32 +297,50 @@ bool communicator::toHub(String data)
 	char ssid_char[this->master_ssid.length()+1]; char pass_char[this->master_pass.length()+1];
     this->master_ssid.toCharArray(ssid_char, this->master_ssid.length()+1); 
 	this->master_pass.toCharArray(pass_char, this->master_pass.length()+1);
-      
+
+	//Change mode
+	WiFi.mode(WIFI_STA);
+	delay(200);
 
 	// Connect to client
 	WiFiClient curr_client;
 	WiFi.begin(ssid_char, pass_char);
+	//::Serial.println(ssid_char);
+	//::Serial.println(pass_char);
 
 	// Check status
-	int wait = 3000;
+	int wait = 2500;
 	while((WiFi.status() == WL_DISCONNECTED) && wait--)
 		delay(3);
 
 	// If the connection timed out
-	if (WiFi.status() != 3)
+	if (WiFi.status() != 3){
+		//::Serial.println("Status issue in connecting to node");
+		WiFi.mode(WIFI_AP_STA);
 		return false;
+	}
 
 	// Connect to the node's server
-	if (!curr_client.connect(SERVER_IP_ADDR, SERVER_PORT)) 
+	if (!curr_client.connect(SERVER_IP_ADDR, SERVER_PORT)){ 
+		//::Serial.println("cant't connect to node server returning false");
+		WiFi.mode(WIFI_AP_STA);
 		return false;
+	}
 
 	// Send main hubs ssid and password
-	if (!this->send(data, curr_client))
+	if (!this->send(data, curr_client)){
+		//::Serial.println("could not send data returing false");
+		WiFi.mode(WIFI_AP_STA);
 		return false;
+	}
 
 	// Disconnect from client
 	curr_client.stop();
 	WiFi.disconnect();
+
+	//Change mode 
+	WiFi.mode(WIFI_AP_STA);
+	delay(200);
 
 	return true;
 }

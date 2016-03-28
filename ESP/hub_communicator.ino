@@ -21,9 +21,10 @@ const char *password = "MAINHUB_PASSWORD";
 /**
  * Misc global vars
  */ 
+// [{"s": "MAINHUB_SSID", "p":"MAINHUB_PASSWORD"}, {"s": "SUBHUB-API-KEY", "p": "SUBHUB-PASSWORD"}]
 String connection_data_serial = "[{\"s\": \"MAINHUB_SSID\", \"p\":\"MAINHUB_PASSWORD\"}, {\"s\": \"SUBHUB-API-KEY\", \"p\": \"SUBHUB-PASSWORD\"}]"; // , {\"s\": \"CARRIAGEHUB_2\", \"p\": \"CARRIAGEHUB_PASSWORD\"}
 communicator* nodeCommunicator = new communicator(false, String(ssid), String(password));
-unsigned long configSubHubInterval = 50000;
+unsigned long configSubHubInterval = 500000;
 unsigned long configSubHubPrevious = 0;
 
 
@@ -40,7 +41,11 @@ void setup() {
 	setNodeString();
 
 	// Send sub hub the connection data 
-	nodeCommunicator->sendSubHubData();
+        bool configed = false;
+        while(!configed){
+	        configed = nodeCommunicator->sendSubHubData();
+                delay(10000);
+        }
 }
 
 
@@ -70,15 +75,14 @@ void loop() {
  */
 void setNodeString() {
 	// Wait for the ardunio to send the connection data
-	bool wait = true;
-	while (wait) {
-		wait = false; // @todo this will be removed when arduino is connected
+	bool wait = false;
+	while (!wait) {
 		if (Serial.available() > 0) {
 			// Set the string
 			connection_data_serial = Serial.readString();
 			// Configure the class
-			nodeCommunicator->configureMainHub(connection_data_serial);
-			wait = false;
-		}
+			wait = nodeCommunicator->configureMainHub(connection_data_serial);
+      		}
 	}
+        Serial.println("configured");
 }

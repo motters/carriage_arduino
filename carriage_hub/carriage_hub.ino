@@ -46,7 +46,7 @@ boolean connected_to = false;
 //String data = "";
 char *cstr;
 constexpr const int* addr(const int& ir) {
-  return &ir;
+	return &ir;
 }
 
 
@@ -57,22 +57,22 @@ constexpr const int* addr(const int& ir) {
  */
 void setup()
 {
-  // Open serial communications and wait for port to open:
-  Serial.begin(9600);
+	// Open serial 115200 and wait for port to open:
+	Serial.begin(9600);
 
-  // Start the Ethernet connection:
-  if (Ethernet.begin(mac) == 0) {
-    Serial.println("Failed to configure Ethernet using DHCP tring static IP instead.");
-    // Try to congifure using IP address instead of DHCP:
-    Ethernet.begin(mac, ip);
-  }
+	// Start the Ethernet connection:
+	if (Ethernet.begin(mac) == 0) {
+		Serial.println("Failed to configure Ethernet using DHCP tring static IP instead.");
+		// Try to congifure using IP address instead of DHCP:
+		Ethernet.begin(mac, ip);
+	}
 
-  // Get the hubs and associated sub hubs configuration
-  while(serial_config == ""){
-	  serial_config = httpRequestConfig();
-  }
-  cstr = new char[serial_config.length() + 1];
-  strcpy(cstr, serial_config.c_str());
+	// Get the hubs and associated sub hubs configuration
+	while(serial_config == ""){
+		serial_config = httpRequestConfig();
+	}
+	cstr = new char[serial_config.length() + 1];
+	strcpy(cstr, serial_config.c_str());
 
 }
 
@@ -84,9 +84,9 @@ void setup()
  */
 void loop()
 {
-	// Set data to send to sub hubs     EG    {"sub_hubs":[{"s":"sub_v1_1","p":"password","m":[{"t":"2","in":"8000","mc":"SH-D-3"},{"t":"2","in":"5000","mc":"SH-I2C-105"}]}]}
+	// Set data to send to sub hubs    
 	String Hubs = "[{\"s\": \""+String(api_key)+"\", \"p\":\""+String(password)+"\"}, ";
-	String SubHubs = cstr; SubHubs.remove(0,1);  SubHubs = Hubs + SubHubs;
+	String SubHubs = cstr; SubHubs.remove(0,1);  SubHubs = Hubs + SubHubs; // EG   [{"s": "8zA4N3vDrhgEFQugX4ThtO1Ch", "p":"password"}, {"s":"fweifweiojfiojoi","p":"ioj","m":[{"t":"3","in":"500","mc":"okpok"}]},{"s":"sub_v1_1","p":"password","m":[{"t":"2","in":"8000","mc":"SH-D-3"},{"t":"2","in":"5000","mc":"SH-I2C-105"}]}]
 
 	// Send data to wirless module
 	Serial.println(SubHubs);
@@ -124,37 +124,37 @@ void loop()
  */
 boolean httpRequestUpload(String data_string)
 {
-  // Ensure socket is not in use
-  if (!client.connected()) {
-    client.stop();
-  }
+	// Ensure socket is not in use
+	if (!client.connected()) {
+		client.stop();
+	}
 
-  // When socket free open a connection
-  if (client.connect(server, 80)) {
-	// Make the http request to server     ?data="+data_string+"
-    client.println("POST /api/v1/upload/" + String(api_key) + "?data="+data_string+" HTTP/1.1\nHost: 192.168.0.171\napi: " + String(api_key) + "\nenc: " + String(enc_key) + "\nusername: " + String(username) + "\npassword: " + String(password) + "\nContent-Type: multipart/form-data;\nConnection: close");
-    client.println();
-  }
-  
-  // Wait for server to recieve request
-  while (client.connected() && !client.available()) delay(1);
+	// When socket free open a connection
+	if (client.connect(server, 80)) {
+		// Make the http request to server     ?data="+data_string+"
+		client.println("POST /api/v1/upload/" + String(api_key) + "?data="+data_string+" HTTP/1.1\nHost: 192.168.0.171\napi: " + String(api_key) + "\nenc: " + String(enc_key) + "\nusername: " + String(username) + "\npassword: " + String(password) + "\nContent-Type: multipart/form-data;\nConnection: close");
+		client.println();
+	}
 
-  // Retrieve data from server and store in buffer
-  String data = "";
-  while (client.connected() || client.available()) {
-    char c = client.read();
-    //Serial.print(c);
-    if (c == '\n') {
-      data += ' ';
-    } else {
-      data += c;
-    }
-  }
+	// Wait for server to recieve request
+	while (client.connected() && !client.available()) delay(1);
 
-  // Close the connection / socket
-  client.stop();
+	// Retrieve data from server and store in buffer
+	String data = "";
+	while (client.connected() || client.available()) {
+		char c = client.read();
+		//Serial.print(c);
+		if (c == '\n') {
+			data += ' ';
+		} else {
+			data += c;
+		}
+	}
 
-  return true;
+	// Close the connection / socket
+	client.stop();
+
+	return true;
 }
 
 
@@ -165,63 +165,63 @@ boolean httpRequestUpload(String data_string)
  */
 String httpRequestConfig()
 {
-  String data = "";
-  // Ensure socket is not in use
-  if (!client.connected()) {
-    client.stop();
-  }
+	String data = "";
+	// Ensure socket is not in use
+	if (!client.connected()) {
+		client.stop();
+	}
 
-  // When socket free open a connection
-  if (client.connect(server, 80)) {
-    // Make the http request to server
-    client.println("GET /api/v1/config/" + String(api_key) + " HTTP/1.1\nHost: 192.168.0.171\napi: " + String(api_key) + "\nenc: " + String(enc_key) + "\nusername: " + String(username) + "\npassword: " + String(password) + "\nConnection: close");
-    //client.println("GET /test HTTP/1.1\nHost: 192.168.33.17\napi: "+String(api_key)+"\nenc: "+String(enc_key)+"\nusername: "+String(username)+"\npassword: "+String(password)+"\nConnection: close");
-    client.println();
-  }
-  
-  // Wait for server to recieve request
-  while (client.connected() && !client.available()) delay(1);
+	// When socket free open a connection
+	if (client.connect(server, 80)) {
+		// Make the http request to server
+		client.println("GET /api/v1/config/" + String(api_key) + " HTTP/1.1\nHost: 192.168.0.171\napi: " + String(api_key) + "\nenc: " + String(enc_key) + "\nusername: " + String(username) + "\npassword: " + String(password) + "\nConnection: close");
+		//client.println("GET /test HTTP/1.1\nHost: 192.168.33.17\napi: "+String(api_key)+"\nenc: "+String(enc_key)+"\nusername: "+String(username)+"\npassword: "+String(password)+"\nConnection: close");
+		client.println();
+	}
 
-  // Retrieve data from server and store in buffer
-  while (client.connected() || client.available()) {
-    char c = client.read();
-    //Serial.print(c);
-    if (c == '\n') {
-      data += ' ';
-    } else {
-      data += c;
-    }
-  }
+	// Wait for server to recieve request
+	while (client.connected() && !client.available()) delay(1);
 
-  // Close the connection / socket
-  client.stop();
+	// Retrieve data from server and store in buffer
+	while (client.connected() || client.available()) {
+		char c = client.read();
+		//Serial.print(c);
+		if (c == '\n') {
+			data += ' ';
+		} else {
+			data += c;
+		}
+	}
 
-  // Take only the content not the headers
-  const char *PATTERN1 = " [{\"s\":\"";
-  const char *PATTERN2 = " 0";
+	// Close the connection / socket
+	client.stop();
 
-  char *target = NULL;
-  char *start, *end;
-  const char * s = data.c_str();
-  if ( start = strstr( s, PATTERN1 ) )
-  {
-    start += strlen( PATTERN1 );
-    if ( end = strstr( start, PATTERN2 ) )
-    {
-      target = ( char * )malloc( end - start + 1 );
-      memcpy( target, start, end - start );
-      target[end - start] = '\0';
-    }else{
+	// Take only the content not the headers
+	const char *PATTERN1 = " [{\"s\":\"";
+	const char *PATTERN2 = " 0";
+
+	char *target = NULL;
+	char *start, *end;
+	const char * s = data.c_str();
+	if ( start = strstr( s, PATTERN1 ) )
+	{
+		start += strlen( PATTERN1 );
+		if ( end = strstr( start, PATTERN2 ) )
+		{
+			target = ( char * )malloc( end - start + 1 );
+			memcpy( target, start, end - start );
+			target[end - start] = '\0';
+		}else{
+			return "";
+		}
+	}else{
 		return "";
 	}
-  }else{
-	  return "";
-  }
 
-  // Format the data and ensure valid json
-  data = "[{\"s\":\"" + String(target);
-  free( target );
-  return data;
+	// Format the data and ensure valid json
+	data = "[{\"s\":\"" + String(target);
+	free( target );
+	return data;
 }
 
 

@@ -9,11 +9,23 @@
   #include "WProgram.h"
 #endif
 
+
 #define SERVER_IP_ADDR			"192.168.4.1"
 #define SERVER_PORT				4011
 
+template<typename T>
+void clear(T& instance)
+{
+    instance = T();
+}
+
+
 /**
- * Init the class and usage
+ * Init the class. Wireless module is setup here.
+ *
+ * @param bool subHub Is the class a subhub or mainhub
+ * @param String ssid_id The SSID for the module
+ * @param String password The password for the module
  *
  * @author Sam Mottley
  */
@@ -40,7 +52,7 @@ communicator::communicator(bool subHub, String ssid_id, String password):
 communicator::~communicator(void){ }
 
 /**
- * PUBLIC: 
+ * PUBLIC: Spits a commar seperated string and returns the section selected
  *
  * @author Sam Mottley
  */
@@ -52,7 +64,7 @@ String communicator::split(String in_str, int id) {
 	char *p = sz;
 	char *str;
 	int id_c = 0;
-	while ((str = strtok_r(p, ",", &p)) != NULL){
+	while ((str = strtok_r(p, "@", &p)) != NULL){
 		if(id_c == id){
 			return String(str);
 		}else{
@@ -86,7 +98,7 @@ bool communicator::configureMainHub(String nodes_string)
 	this->setNodes(nodes_string);
 
 	// configure sub hub data
-	this->sendSubHubData();
+	//this->sendSubHubData(); @ check this as its rang in setup loop
 }
 
 /**
@@ -148,8 +160,13 @@ bool communicator::sendSubHubData(void)
 			//return false;
 		}
 
+		// Get module data
+		int length = connection_data[i]["m"].measureLength();
+		char modules[length];
+		connection_data[i]["m"].printTo(modules, sizeof(modules));
+
 		// Send main hubs ssid and password
-		if (!this->send(this->ssid+","+this->pass, curr_client)){
+		if (!this->send(this->ssid+"@"+this->pass+"@"+String(modules), curr_client)){
 			WiFi.mode(WIFI_AP_STA);
 			//::Serial.println("cant send data conintue");
 			continue;
@@ -167,7 +184,8 @@ bool communicator::sendSubHubData(void)
 	}
 
 	// Memory leak some where :s
-	delete jsonBuffer; delete connection_data;
+	clear(jsonBuffer);
+	//delete jsonBuffer; delete connection_data;
 
 	return true;
 }
@@ -192,10 +210,9 @@ bool communicator::send(String message, WiFiClient curr_client)
 	/*if (response.length() <= 2){ 
 		::Serial.println("length greating than two returning false");
 		return false;
-	}*/
-
+	}
 	this->received = response;
-
+	*/
 	return true;
 }
 
@@ -209,30 +226,33 @@ bool communicator::readData()
 	while (true) {
 		this->_client = this->_server.available();
 		if (!this->_client){
-			//break;
 			//::Serial.println("No client");
 			return false;
 		}
 
 		if (!this->waitForClient(_client, 3000)) {
 			//::Serial.println("Waiting for client");
-			//continue;
-			continue;
+			//continue;                             @todo check whether best to continue or return false
+			return false;
 		}
 
 		// Read in request and pass it to the supplied handler
 		this->received = this->_client.readStringUntil('\r');
 		this->_client.readStringUntil('\n');
-
 		//::Serial.println(this->received);
 
 		// Send the response back to the client of success
 		if (this->_client.connected())
 			this->_client.println("200");
 
+		// Memory leak somewhere
+		//delete this->_client;
+
+		// Return true as message has been read
 		return true;
 	}
-	
+
+	// Failed to read 
 	return false;
 }
 
@@ -274,7 +294,7 @@ bool communicator::configureSubHub(void)
 			//set the main hub data
 			this->master_ssid = this->split(this->received, 0);
 			this->master_pass = this->split(this->received, 1);
-			//::Serial.println(master_ssid);
+			::Serial.println(this->split(this->received, 2));
 			//::Serial.println(master_pass);
 			
 			// Exit the while loop
@@ -304,9 +324,7 @@ bool communicator::toHub(String data)
 
 	// Connect to client
 	WiFiClient curr_client;
-	WiFi.begin(ssid_char, pass_char);
-	//::Serial.println(ssid_char);
-	//::Serial.println(pass_char);
+	WiFi.begin(ssid_char, pass_char); //::Serial.println(ssid_char); ::Serial.println(pass_char);
 
 	// Check status
 	int wait = 2500;

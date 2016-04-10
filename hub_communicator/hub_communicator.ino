@@ -67,13 +67,13 @@ void loop()
 	if(currentMillis - configSubHubPrevious >= configSubHubInterval)
 	{
 		// Reply
-		Serial.println("configuring_subhubs_timer");
+		//Serial.println("configuring_subhubs_timer");
 
 		// Run configuration    @check this nodeCommunicator->configureMainHub(connection_data_serial);
 		nodeCommunicator->sendSubHubData();
 
 		// Reply
-		Serial.println("configured_subhubs_timer");
+		//Serial.println("configured_subhubs_timer");
 
 		// Save last time configuation was ran
 		configSubHubPrevious = currentMillis;
@@ -95,7 +95,7 @@ void setNodeString()
 			connection_data_serial = Serial.readString();
 
 			// Reply 
-			Serial.println("configuring_subhubs");
+			//Serial.println(connection_data_serial);
 
 			// Configure the class
 			wait = nodeCommunicator->configureMainHub(connection_data_serial);
@@ -103,6 +103,6 @@ void setNodeString()
 	}
 
 	// Reply success
-	Serial.println("configured_subhubs");
+	//Serial.println("configured_subhubs");
 }
 

@@ -14,8 +14,8 @@
  *
  *  @author Sam Mottley
  */
-// [{"mc":"SH-D-3","t":"2","in":"4000"}, {"mc":"SH-I2C-105","t":"3","in":"2000"}]
-String modules_config = "[{\"mc\":\"SH-D-3\",\"t\":\"2\",\"in\":\"4000\"}, {\"mc\":\"SH-I2C-105\",\"t\":\"3\",\"in\":\"2000\"}]";
+// [{"mc":"SH-D-3","t":"2","in":"4000"}, {"mc":"SH-I2C-105","t":"3","in":"2000"}]     [{\"mc\":\"SH-D-3\",\"t\":\"2\",\"in\":\"4000\"}, {\"mc\":\"SH-I2C-105\",\"t\":\"3\",\"in\":\"2000\"}]
+String modules_config = "";
 
 
 /**
@@ -49,12 +49,13 @@ void setup()
 	Serial.begin(115200);
 
 	// Set the config string
-	boolean modules_config_setup = false;
-	while(!modules_config_setup){
+	//String modules_config_setup = "";
+	while(modules_config == ""){
 		if(Serial.available() > 0){
 			// Set the string
-			modules_config_setup = Serial.readString();
-			setup = true;
+			modules_config = Serial.readString();
+			//Serial.println(modules_config);
+			//setup = true;
 		}
 	}
 
@@ -110,7 +111,7 @@ void loop()
 				module_times[i] = currentMillis;
 
 				// Decide which function to run
-				module_type = modules_object[i]["t"];
+				module_type = modules_object[i]["t"].asString(); // .asString()
 				String connection_buf = modules_object[i]["mc"];
 
 				switch(atoi(module_type))
@@ -193,11 +194,11 @@ boolean sendBuffer(String connection)
 	JsonArray& modules_object = jsonBuffer.parseArray(modules_config);
 
 	// Loop through all modules in configuration
-	String type = "0";
+	String type = "0"; int i = 0;
 	for (i = 0; i < (sizeof(modules_object)/sizeof(int)); i++) 
 	{
 		if(modules_object[i]["mc"] == connection){
-			type = modules_object[i]["t"];
+			type = modules_object[i]["t"].asString();
 			break;
 		}
 	}
@@ -218,13 +219,9 @@ boolean sendBuffer(String connection)
  */
 void readTemperture(String connection)
 {
-	//Temp
-	buffer_container[connection] += rand(0,200);
-	return;
-
 	String temp = split(connection, 2);
 	uint8_t port = temp.toInt();
-	Serial.println(port);
+	//Serial.println(port);
 	// Init temperature reader class 
 	DHT dht(port, 11);
 	dht.begin();
@@ -244,13 +241,9 @@ void readTemperture(String connection)
  */
 void readVibration(String connection)
 {
-	//Temp
-	buffer_container[connection] += rand(0,200);
-	return;
-
 	String temp = split(connection, 2);
 	int port = temp.toInt();
-	Serial.println(port);
+	//Serial.println(port);
 	Wire.beginTransmission(port);
 	Wire.write(0x6B);  // PWR_MGMT_1 register
 	Wire.write(0);     // set to zero (wakes up the MPU-6050)
@@ -271,7 +264,7 @@ void readVibration(String connection)
 	GyY = Wire.read() << 8 | Wire.read(); // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
 	GyZ = Wire.read() << 8 | Wire.read(); // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
 
-	buffer_container[connection] += ","  + timestamp() + "@" + String(AcX)+":"+String(AcY);//+":"+String(AcZ)+":"+String(Tmp)+":"+String(GyX)+":"+String(GyY)+":"+String(GyZ);
+	buffer_container[connection] += ","  + timestamp() + "@" + String(AcX)+":"+String(AcY)+":"+String(AcZ);//+":"+String(Tmp)+":"+String(GyX)+":"+String(GyY)+":"+String(GyZ);
 }
 
 

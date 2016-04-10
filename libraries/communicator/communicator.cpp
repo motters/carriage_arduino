@@ -96,7 +96,7 @@ bool communicator::configureMainHub(String nodes_string)
 {
 	// decode the node adresses
 	this->setNodes(nodes_string);
-
+	return true;
 	// configure sub hub data
 	//this->sendSubHubData(); @ check this as its rang in setup loop
 }
@@ -162,7 +162,7 @@ bool communicator::sendSubHubData(void)
 
 		// Get module data
 		int length = connection_data[i]["m"].measureLength();
-		char modules[length];
+		char modules[length+1];
 		connection_data[i]["m"].printTo(modules, sizeof(modules));
 
 		// Send main hubs ssid and password
@@ -186,7 +186,7 @@ bool communicator::sendSubHubData(void)
 	// Memory leak some where :s
 	clear(jsonBuffer);
 	//delete jsonBuffer; delete connection_data;
-
+	//::Serial.println("returning true");
 	return true;
 }
 
@@ -294,6 +294,7 @@ bool communicator::configureSubHub(void)
 			//set the main hub data
 			this->master_ssid = this->split(this->received, 0);
 			this->master_pass = this->split(this->received, 1);
+
 			::Serial.println(this->split(this->received, 2));
 			//::Serial.println(master_pass);
 			

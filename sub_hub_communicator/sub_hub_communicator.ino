@@ -50,7 +50,7 @@ void loop()
 		if(nodeCommunicator->configureSubHub())
 		{
 			main_hub = true;  
-            Serial.println("connection_details_recieved");
+            //Serial.println("connection_details_recieved");
         }
 	}
 
@@ -67,7 +67,7 @@ void loop()
 			data_buffer += data;
 
 			//Reply
-			Serial.println("data_recieved");
+			//Serial.println("data_recieved");
 
 			// Should the buffer be sent to the main hub?
             if(data_buffer.length() >= data_buffer_length)
@@ -77,11 +77,15 @@ void loop()
 				while(!sent)
 				{
 					sent = nodeCommunicator->toHub(String(ssid)+"}"+data_buffer);
-					delay(1000);
+					if(!sent)
+						delay(1000);
 				}
 
+				// Clear buffer
+				data_buffer = "";
+
 				// Reply
-				Serial.println("data_sent");
+				//Serial.println("data_sent");
 			}			
 		}
 	}

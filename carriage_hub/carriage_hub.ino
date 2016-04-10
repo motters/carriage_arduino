@@ -45,9 +45,9 @@ const unsigned long postingInterval = 100L * 500L; // delay between updates, in 
 boolean connected_to = false;
 //String data = "";
 char *cstr;
-constexpr const int* addr(const int& ir) {
-	return &ir;
-}
+//constexpr const int* addr(const int& ir) {
+//	return &ir;
+//}
 
 
 /**
@@ -58,8 +58,9 @@ constexpr const int* addr(const int& ir) {
 void setup()
 {
 	// Open serial 115200 and wait for port to open:
-	Serial.begin(9600);
-
+	Serial.begin(115200);
+	Serial1.begin(115200);
+	
 	// Start the Ethernet connection:
 	if (Ethernet.begin(mac) == 0) {
 		Serial.println("Failed to configure Ethernet using DHCP tring static IP instead.");
@@ -89,6 +90,7 @@ void loop()
 	String SubHubs = cstr; SubHubs.remove(0,1);  SubHubs = Hubs + SubHubs; // EG   [{"s": "8zA4N3vDrhgEFQugX4ThtO1Ch", "p":"password"}, {"s":"fweifweiojfiojoi","p":"ioj","m":[{"t":"3","in":"500","mc":"okpok"}]},{"s":"sub_v1_1","p":"password","m":[{"t":"2","in":"8000","mc":"SH-D-3"},{"t":"2","in":"5000","mc":"SH-I2C-105"}]}]
 
 	// Send data to wirless module
+	Serial1.println(SubHubs);
 	Serial.println(SubHubs);
 
 	// Variable to store incomming information
@@ -98,15 +100,24 @@ void loop()
 	while (true)
 	{
 		// Check for incomming requests
-		if(Serial.available() > 0)
+		if(Serial1.available() > 0)
 		{
 			// Read the data
-			data = Serial.readString();
+			data = Serial1.readString();
+
+			// Remove line feed and return 
+			data.replace("\n","");
+			data.replace("\r","");
+
+			// Print data to serial 0 to debug
+			Serial.println(data);
 
 			// Upload data to web sever
 			boolean uploaded = false;
 			while(!uploaded){
 				uploaded = httpRequestUpload(data);
+				if(!uploaded)
+					delay(500);
 			}
 
 			// Clear data from memory
@@ -129,7 +140,7 @@ boolean httpRequestUpload(String data_string)
 		client.stop();
 	}
 
-	// When socket free open a connection
+	// When socket free open a connection       Example Data String: sub_v1_1}SH-D-3!2!1459533399@24.2:12.5,1459533542@25.2:13.5,1459533642@27.2:13.5,1459533742@15.2:24.5}
 	if (client.connect(server, 80)) {
 		// Make the http request to server     ?data="+data_string+"
 		client.println("POST /api/v1/upload/" + String(api_key) + "?data="+data_string+" HTTP/1.1\nHost: 192.168.0.171\napi: " + String(api_key) + "\nenc: " + String(enc_key) + "\nusername: " + String(username) + "\npassword: " + String(password) + "\nContent-Type: multipart/form-data;\nConnection: close");

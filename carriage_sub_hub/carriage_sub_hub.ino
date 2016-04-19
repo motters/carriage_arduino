@@ -61,12 +61,14 @@ void setup()
 {
 	// Open serial communications and wait for port to open:
 	Serial.begin(115200);
+ Serial1.begin(115200);
   
 	// Set the config string
 	while(modules_config == ""){
-		if(Serial.available() > 0){
+		if(Serial1.available() > 0){
 			// Set the string
-			modules_config = Serial.readString();
+			modules_config = Serial1.readString();
+     Serial.println(modules_config);
 		}
 	}
 
@@ -109,7 +111,7 @@ void loop()
 	{
 		i = 0;
 		// Loop through all modules in configuration
-		for (i = 0; i <= (sizeof(modules_object)/sizeof(int)); i++) 
+		for (i = 0; i <= ((sizeof(modules_object)/sizeof(int))+1); i++) 
 		{
           // Config some timing
           interval = modules_object[i]["in"]; 
@@ -212,7 +214,7 @@ String split(String in_str, int id) {
 boolean sendBuffer(String connection, String type)
 { 
 	// Send the current buffer
-	Serial.print(connection+"!"+type+"!"+ buffer_container[connection]+"}");
+	Serial1.print(connection+"!"+type+"!"+ buffer_container[connection]+"}");
 
 	// Clear the current buffer
 	buffer_container[connection] = "";
@@ -242,7 +244,9 @@ void readTemperture(String connection, String type)
 
 	// Add recorded value to buffer
 	//buffer_container[connection] += "," + timestamp() + "@" + String(t) + ":" + String(h); 
-  Serial.print(connection+"!"+type+"!" + timestamp() + "@" + String(t) + ":" + String(h)+"}");
+  String time_string = timestamp();
+  Serial1.print(connection+"!"+type+"!" + time_string + "@" + String(t) + ":" + String(h)+"}");
+  Serial.print(connection+"!"+type+"!" + time_string + "@" + String(t) + ":" + String(h)+"}");
 }
 
 
@@ -276,7 +280,9 @@ void readVibration(String connection, String type)
 	GyZ = Wire.read() << 8 | Wire.read(); // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
 
 	//buffer_container[connection] += ","  + timestamp() + "@" + String(AcX)+":"+String(AcY)+":"+String(AcZ);//+":"+String(Tmp)+":"+String(GyX)+":"+String(GyY)+":"+String(GyZ);
-  Serial.print(connection+"!"+type+"!" + timestamp() + "@" + String(AcX)+":"+String(AcY)+":"+String(AcZ)+"}");
+  String time_string = timestamp();
+  Serial1.print(connection+"!"+type+"!" + time_string + "@" + String(AcX)+":"+String(AcY)+":"+String(AcZ)+"}");
+  Serial.print(connection+"!"+type+"!" + time_string + "@" + String(AcX)+":"+String(AcY)+":"+String(AcZ)+"}");
 }
 
 
@@ -341,7 +347,9 @@ void readAirFlow(String connection, String type)
 
   // Save to buffer
   //buffer_container[connection] += ","  + timestamp() + "@" + String(adcvalue);
-  Serial.print(connection+"!"+type+"!" + timestamp() + "@" + String(adcvalue) +"}");
+  String time_string = timestamp();
+  Serial1.print(connection+"!"+type+"!" + time_string + "@" + String(adcvalue) +"}");
+  Serial.print(connection+"!"+type+"!" + time_string + "@" + String(adcvalue) +"}");
 }
 
 /**
@@ -366,7 +374,9 @@ void readGPS(String connection, String type)
               if (gps.encode(c)) {
                     // Add encoded data to global buffer
                     //buffer_container[connection] += ","  + timestamp() + "@" + String(gps.satellites.value()) + ":" + String(gps.location.lat(), 6) + ":" + String(gps.location.lng(), 6);
-                    Serial.print(connection+"!"+type+"!" + timestamp() + "@" + String(gps.satellites.value()) + ":" + String(gps.location.lat(), 6) + ":" + String(gps.location.lng(), 6) +"}");
+                    String time_string = timestamp();
+                    Serial1.print(connection+"!"+type+"!" + time_string + "@" + String(gps.satellites.value()) + ":" + String(gps.location.lat(), 6) + ":" + String(gps.location.lng(), 6) +"}");
+                    Serial.print(connection+"!"+type+"!" + time_string + "@" + String(gps.satellites.value()) + ":" + String(gps.location.lat(), 6) + ":" + String(gps.location.lng(), 6) +"}");
                     break;
               }
         }

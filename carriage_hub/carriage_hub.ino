@@ -17,7 +17,9 @@ byte mac[] = { 0x90, 0xA2, 0xDA, 0x0F, 0x19, 0x28 };
 // Set the web panel ip
 char server[] = "192.168.0.171"; // 192.168.0.171
 // Set the static IP address to use if the DHCP fails to assign
-IPAddress ip(192, 168, 135, 1);
+IPAddress ip(192, 168, 0, 70); //(192, 168, 135, 1);
+IPAddress gateway(192, 168, 0, 1);
+IPAddress subnet(255, 255, 255, 0);
 // Initialize the Ethernet client library
 EthernetClient client;
 
@@ -60,13 +62,13 @@ void setup()
 	// Open serial 115200 and wait for port to open:
 	Serial.begin(115200);
 	Serial1.begin(115200);
-	
+	delay(15000);
 	// Start the Ethernet connection:
-	if (Ethernet.begin(mac) == 0) {
-		Serial.println("Failed to configure Ethernet using DHCP tring static IP instead.");
+	//if (Ethernet.begin(mac) == 0) {
+	//	Serial.println("Failed to configure Ethernet using DHCP tring static IP instead.");
 		// Try to congifure using IP address instead of DHCP:
-		Ethernet.begin(mac, ip);
-	}
+		Ethernet.begin(mac, ip, gateway, subnet);
+	//}
 
 	// Get the hubs and associated sub hubs configuration
 	while(serial_config == ""){
